@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 app.secret_key = 'yoursecret'  # required for session
 
-openWeatherAPIKEY = 'd8272555d1f53c7617f15d542cf1b498'
+openWeatherAPIKEY = 'APIKEY'
 
 ESP32_IP = "http://192.168.2.236"  # Change to your ESP32 IP
 
