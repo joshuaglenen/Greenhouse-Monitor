@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+
+<div class = "row">
+	<form action="/set-ip" method="post">
+	 <label for="esp_ip">Enter IP Address:</label>
+  <input type="text" name="esp_ip" placeholder="http://192.168.2.236">
+  <button type="submit">Connect Device</button>
+</form>
+<form method="post" action="/set-location">
+  <label for="location">Enter Location (City or Zip):</label>
+  <input type="text" name="location" placeholder="e.g., Halifax or B3H">
+  <button type="submit">Set Location</button>
+</form>
+</div>
+<br></br>
+<div class="row">
+<div class="col-md-6">
+    <h2>Live Sensor Readings</h2>
+    <p><strong>Time:</strong> <span id="time">{{ data.time }}</span></p>
+	<p><strong>Temperature:</strong> <span id="temp">{{ data.temp }}</span> °C</p>
+	<p><strong>Humidity:</strong> <span id="hum">{{ data.hum }}</span>%</p>
+	<p><strong>Light:</strong> <span id="light">{{ data.light }}</span> lux</p>
+	<p><strong>Water:</strong> <span id="water">{{ data.water }}</span> mm</p>
+	<p><strong>Soil:</strong> <span id="soil">{{ data.soil }}</span>%</p>
+
+    <form action="/toggle" method="get">
+        <button type="submit">Toggle Manual Override</button>
+    </form>
+	<br></br>
+
+    <h4>Set Temp Constraints</h3>
+    <form action="/set-constraints" method="post">
+        <input type="number" name="tempMin" placeholder="Min °C">
+        <input type="number" name="tempMax" placeholder="Max °C">
+        <button type="submit">Submit</button>
+    </form>
+</div>
+ <div class="col-md-6">
+ 
+    <h4>Weather Warnings</h4>
+	<div id="weather-warnings">No Warnings</div>
+	<br></br>
+	
+	  <h4>7-Day Forecast</h4>
+	  <div id="forecast-daily">
+		No Data
+		</div>
+</div>
+<br></br>
+<div class="row">
+	<h3>Local Weather for {{ location }}</h3>
+  <div id="weather-now">
+    <p><strong>Condition:</strong> <span id="condition"></span></p>
+    <p><strong>Temperature:</strong> <span id="weathertemp"></span>°C</p>
+    <p><strong>Feels Like:</strong> <span id="feels_like"></span>°C</p>
+    <p><strong>Humidity:</strong> <span id="humidity"></span>%</p>
+    <p><strong>Wind:</strong> <span id="wind"></span> km/h</p>
+    <p><strong>UV Index:</strong> <span id="uv"></span></p>
+    <p><strong>Sunrise:</strong> <span id="sunrise"></span> | <strong>Sunset:</strong> <span id="sunset"></span></p>
+  </div>
+
+
+  <h4>24-Hour Forecast</h4>
+  <div id="forecast-hourly">
+    <canvas id="hourlyChart" width="400" height="200"></canvas>
+  </div>
+  <br></br>
+
+
+</div>
+
+<script>
+    function updateLiveData() {
+        fetch('/data')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('time').innerText = data.time;
+                document.getElementById('temp').innerText = data.temp;
+                document.getElementById('hum').innerText = data.hum;
+                document.getElementById('light').innerText = data.light;
+                document.getElementById('water').innerText = data.water;
+                document.getElementById('soil').innerText = data.soil;
+            });
+    }
+
+    setInterval(updateLiveData, 1000); // Update every 5 seconds
+	
+const API_KEY = 'd8272555d1f53c7617f15d542cf1b498';
+const locationInput = {{ location | tojson | safe }};
+
+window.onload = () => {
+  if (locationInput) {
+    getCoordinates(locationInput)
+      .then(coords => fetchWeather(coords.lat, coords.lon))
+      .catch(err => console.error("Geocoding failed:", err));
+  }
+};
+
+async function getCoordinates(location) {
+  const res = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location)}&limit=1&appid=${API_KEY}`);
+  const data = await res.json();
+  if (data.length === 0) throw new Error("Invalid location");
+  return { lat: data[0].lat, lon: data[0].lon };
+}
+
+async function fetchWeather(lat, lon) {
+  try {
+    const res = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`);
+    const data = await res.json();
+	console.log("OpenWeather data: ",data);
+	renderHourlyChart(data.hourly);
+
+    updateNow(data.current);
+    updateForecastDaily(data.daily);
+    updateAlerts(data.alerts || []);
+  } catch (err) {
+    console.error("Weather fetch error:", err);
+  }
+}
+
+function updateNow(current) {
+  document.getElementById("condition").innerText = current.weather[0].description;
+  document.getElementById("weathertemp").innerText = current.temp;
+  document.getElementById("feels_like").innerText = current.feels_like;
+  document.getElementById("humidity").innerText = current.humidity;
+  document.getElementById("wind").innerText = (current.wind_speed * 3.6).toFixed(1); // m/s → km/h
+  document.getElementById("uv").innerText = current.uvi;
+  document.getElementById("sunrise").innerText = new Date(current.sunrise * 1000).toLocaleTimeString();
+  document.getElementById("sunset").innerText = new Date(current.sunset * 1000).toLocaleTimeString();
+}
+
+
+
+function updateForecastDaily(daily) {
+  let html = '<ul>';  // Start unordered list
+  daily.forEach(day => {
+    const date = new Date(day.dt * 1000);
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    html += `<li>${weekday}: ${day.temp.min}–${day.temp.max}°C, ${day.weather[0].main}</li>`;
+  });
+  html += '</ul>';  // Close unordered list
+  document.getElementById("forecast-daily").innerHTML = html;
+  console.log("Daily forecast:", daily);
+}
+
+function updateAlerts(alerts) {
+  const box = document.getElementById("weather-warnings");
+  if (alerts.length === 0) {
+    box.innerHTML = "No Warnings";
+    return;
+  }
+
+  let html = "";
+  alerts.forEach(alert => {
+    const isRelevant = alert.event.toLowerCase().includes("frost") || alert.event.toLowerCase().includes("heat");
+    if (isRelevant) {
+      html += `
+        <div style="border:1px solid red;padding:5px;margin-bottom:5px;">
+          <strong>${alert.event}</strong><br>
+          ${alert.description}<br>
+          <em>${new Date(alert.start * 1000).toLocaleString()} → ${new Date(alert.end * 1000).toLocaleString()}</em>
+        </div>
+      `;
+    }
+  });
+
+  box.innerHTML = html || "No frost or heat warnings.";
+}
+
+window.onload = () => {
+  console.log("Location input from session:", locationInput);
+  if (locationInput) {
+    getCoordinates(locationInput)
+      .then(coords => fetchWeather(coords.lat, coords.lon))
+      .catch(err => console.error("Geocoding failed:", err));
+  }
+};
+
+function renderHourlyChart(hourlyData) {
+  const ctx = document.getElementById('hourlyChart').getContext('2d');
+  
+  const labels = hourlyData.slice(0, 24).map(h => {
+    const date = new Date(h.dt * 1000);
+    return `${date.getHours()}:00`;
+  });
+
+  const temps = hourlyData.slice(0, 24).map(h => h.temp);
+  const humidity = hourlyData.slice(0, 24).map(h => h.humidity);
+  const rain = hourlyData.slice(0, 24).map(h => h.rain ? h.rain['1h'] || 0 : 0);  // mm in last hour
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'line',
+          label: 'Temp (°C)',
+          data: temps,
+          borderColor: 'red',
+          backgroundColor: 'rgba(255,0,0,0.1)',
+          yAxisID: 'y',
+          tension: 0.3
+        },
+        {
+          type: 'line',
+          label: 'Humidity (%)',
+          data: humidity,
+          borderColor: 'blue',
+          backgroundColor: 'rgba(0,0,255,0.1)',
+          yAxisID: 'y',
+          tension: 0.3
+        },
+        {
+          type: 'bar',
+          label: 'Rainfall (mm)',
+          data: rain,
+          backgroundColor: 'rgba(0, 150, 136, 0.6)',
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      stacked: false,
+      scales: {
+        y: {
+          type: 'linear',
+          position: 'left',
+          title: { display: true, text: 'Temp/Humidity' },
+          beginAtZero: false
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          title: { display: true, text: 'Rainfall (mm)' },
+          beginAtZero: true,
+          grid: {
+            drawOnChartArea: false
+          }
+        }
+      }
+    }
+  });
+}
+
+
+	
+</script>
+{% endblock %}
