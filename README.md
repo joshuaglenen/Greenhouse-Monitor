@@ -1,35 +1,38 @@
-#Greenhouse Monitor
-
+# Greenhouse-Monitor
 An embedded system for greenhouse climate control, designed to wirelessly monitor temperature and humidity and regulate fan and heater activation based on user-defined thresholds. The device connects to Wi-Fi to display live sensor data, offers manual overrides, and fetches localized weather updates including frost and heatwave alerts.
-________________________________________
-#Background
 
-##Purpose
+## Background
+
+### Purpose
+
 This project began as a personal challenge to improve my skills in embedded systems and software development. It required relearning key concepts from my electrical engineering degree and integrating new ones. Initially, the idea was to develop a system that could wirelessly report real-time temperature data from a small greenhouse. Over time, this goal expanded to include a variety of sensor inputs, a local dashboard, and eventually a full-stack solution involving an online interface and data logging system with weather alert integration.
-
-##Implementation
+  
+### Implementation
+  
 I chose the ESP32 microcontroller for its built-in Wi-Fi and Bluetooth capabilities. The initial prototype (Fig. 1) included all relevant sensors I had on hand. Over time, I refined the system to a more practical and deployable design, balancing simplicity with essential features. I integrated a local dashboard served via SPIFFS, implemented automated data uploads to ThingSpeak, and developed a lightweight web app backed by an SQL database for persistent logging and remote control.
 
-Parts List 
-Core components used in the second prototype (excluding optional soil moisture and water level sensors):
+### Parts List 
 
-<li>HLK-PM01 (120 VAC 0.2 A to 5 VDC 0.6 A)</li>
-<li>3.5 A slow-blow fuse (DC side)</li>
-<li>10 A slow-blow fuse (AC side)</li>
-<li>1N4148 diode</li>
-<li>2 × 2N7000 NPN transistors</li>
-<li>Resistors: 220 Ω, 2 × 10 kΩ, 2 × 1 kΩ (0.25 W)</li>
-<li>0.22 μF X2 capacitor</li>
-<li>22 pF capacitor</li>
-<li>100 Ω 1 W resistor</li>
-<li>DHT22 temperature and humidity sensor</li>
-<li>ESP32 DevKit</li>
-________________________________________
-#Methods
+The following parts for the second prototype not including the optional soil moisture and water level sensors are listed below.
+  <li>HLK_PM01 120VAC 0.2A to 5VDC 0.6A </li>
+  <li>3.5A Slow Blow Fuse</li>
+  <li>10A Slow Blow Fuse</li>
+  <li>1n4148 Diode</li>
+  <li>2 2N7000 NPN Transistors</li>
+  <li>220, 2x10k, 2x1k Ohm 0.25W Resistors</li>
+  <li>0.22uF X2 Capacitor</li>
+  <li>22pF Capacitor</li>
+  <li>100 Ohm 1W Resistor</li>
+  <li>DHT22</li>
+  <li>ESP32 Devkit</li>
+  
+## Methods
 
-##Embedded Programming
+### Embedded Programming
+
 The MCU code was developed for the ESP32 DevKit. Libraries used included <ArduinoOTA.h> for over-the-air updates, <WiFiManager.h> and <WiFi.h> for network handling, <WebServer.h> for HTTP interface routing, and <HTTPClient.h> for external data uploads.
-Core features:
+
+### Core features:
 <li>Periodic logging of temperature and humidity (every 15 seconds)</li>
 <li>Relay control based on thresholds (auto with manual overrides)</li>
 <li>User-defined min/max temperature constraints (persistent via Preferences)</li>
@@ -37,7 +40,9 @@ Core features:
 <li>External logging to ThingSpeak and later a custom SQL server</li>
 <li>OTA updates for easy remote reprogramming</li>
 
-##Prototype 1
+  
+### Designing the Prototype 
+
 Prototype 1 was a proof-of-concept breadboard build featuring:
 <li>Water level and soil moisture sensors</li>
 <li>Light level sensor</li>
@@ -46,6 +51,8 @@ Prototype 1 was a proof-of-concept breadboard build featuring:
 <li>Real-time clock (RTC) with a shift register</li>
 <li>DHT11 sensor (later upgraded to DHT22)</li>
 As fan/heater control required AC interfacing, the design transitioned from battery power to mains power. AC wires were fused and isolated from the logic side. A borrowed PSU from a keyboard charger was used to convert AC to 5 VDC.
+
+
 ![IMG_4A27B2FE-A575-4C25-8DCB-BFCA18A9B55C](https://github.com/user-attachments/assets/a51813a0-697a-4338-999f-32065ff3e681)
 Fig 1: Breadboard prototype including all modules and features as a proof of concept
   
@@ -54,38 +61,51 @@ Fig 2: Completed Prototype 1
 
 ![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_1/Prototype_1_Circuit_Diagram.png)
 Diagram 1: Prototype 1 Circuit Diagram
+  
+  
+### Improving the Prototype 
 
-##Prototype 2
 The second prototype focused on being compact, weather-resistant, and deployable. I repurposed a metal outdoor dual-outlet box, rewired and resoldered a cleaner circuit, and updated the diagram.
+
 Key changes:
 <li>RTC, light sensor, RGB LED, and buzzer removed</li>
 <li>Smaller perfboard cut to fit enclosure</li>
 <li>Replaced PSU with HLK-PM01 module</li>
 <li>Two relays - one for the fan and one for the heater</li>
 <li>Fully enclosed and sealed design with passive air access and drain hole at the bottom</li>
+
 ![IMG_0595](https://github.com/user-attachments/assets/c010b5f1-a3dc-4ce9-8e89-2c99297a522f)
+
 Fig 3: Prototype 2 Testing For Fit of Components in Enclosure
 
 ![IMG_1ACED76C-B3CF-402B-A785-0908097FE2AA](https://github.com/user-attachments/assets/e8aa3f8f-5f34-4bb3-8bb0-af1a2303a12f)
+
 Fig 4: Finished Prototype 2
 
 ![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_2/Prototype_2_Circuit_Diagram.png)
+
 Diagram 2: Prototype 2 Circuit Diagram
 
-##Web App Development
-I migrated from a SPIFFS-hosted local dashboard to a Flask-based web app. This new app:
+
+### Web App Development
+
+I migrated from a SPIFFS-hosted local dashboard to a Flask-based web app. 
+
+This new app:
 <li>Allows users to register a device</li>
 <li>Displays live sensor data and historical logs</li>
 <li>Fetches weather forecasts via OpenWeatherMap API</li>
 <li>Sends the user alerts for frost and heatwave warnings</li>
 <li>Offers manual relay control via the internet</li>
 The app connects via the ESP32's HTTP server and to an SQL cloud database. Data can be retrieved from the HTTP server directly over a 24-hour period or taken from the SQL or ThingSpeak databases.
-________________________________________
-#Results
 
-##Testing
-TODO: Describe testing protocol and validation steps.
 
-##Conclusion
-TODO: Summarize performance, limitations, and future directions.
+## Results
 
+### Testing 
+
+TODO Describe testing protocol and validation steps.
+  
+### Conclusion 
+
+TODO Summarize performance, limitations, and future directions.
