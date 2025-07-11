@@ -265,7 +265,7 @@ void loop() {
     if(soilSensors) checkMoisture();
   
     //send data to thingspeak
-    String url = "http://api.thingspeak.com/update?api_key=TK9X4Z5W6RQHZ70P";
+    String url = "http://api.thingspeak.com/update?api_key=api_key";
     url += "&field1=" + String(temp, 1);
     url += "&field2=" + String(hum, 1);
     url += "&field4=" + String(water);
