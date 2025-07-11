@@ -43,7 +43,7 @@ The MCU code was developed for the ESP32 DevKit. Libraries used included <Arduin
   
 ### Designing the Prototype 
 
-Prototype 1 was a proof-of-concept breadboard build featuring:
+Prototype 1 was a proof-of-concept breadboard build as seen in figure 1. It included:
 <li>Water level and soil moisture sensors</li>
 <li>Light level sensor</li>
 <li>RGB status LED</li>
@@ -52,20 +52,13 @@ Prototype 1 was a proof-of-concept breadboard build featuring:
 <li>DHT11 sensor (later upgraded to DHT22)</li>
 As fan/heater control required AC interfacing, the design transitioned from battery power to mains power. AC wires were fused and isolated from the logic side. A borrowed PSU from a keyboard charger was used to convert AC to 5 VDC.
 
+ ><img src="https://github.com/user-attachments/assets/27479760-3850-4679-929b-592f24989540" width="300" />
 
-![IMG_4A27B2FE-A575-4C25-8DCB-BFCA18A9B55C](https://github.com/user-attachments/assets/a51813a0-697a-4338-999f-32065ff3e681)
-Fig 1: Breadboard prototype including all modules and features as a proof of concept
-  
-![IMG_0581](https://github.com/user-attachments/assets/27479760-3850-4679-929b-592f24989540)
-Fig 2: Completed Prototype 1
-
-![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_1/Prototype_1_Circuit_Diagram.png)
-Diagram 1: Prototype 1 Circuit Diagram
-  
+Fig 1: Completed Prototype 1
   
 ### Improving the Prototype 
 
-The second prototype focused on being compact, weather-resistant, and deployable. I repurposed a metal outdoor dual-outlet box, rewired and resoldered a cleaner circuit, and updated the diagram.
+The second prototype focused on being compact, weather-resistant, and deployable. I repurposed a metal outdoor dual-outlet box and tested for size as shown in figure 2. I desoldered, rewired and resoldered a cleaner and compact circuit and added it to the enclosure. Additionally I updated the circuit diagram as shown in diagram 1 and completed a pcb layout complete with gerber files as in figure 4.
 
 Key changes:
 <li>RTC, light sensor, RGB LED, and buzzer removed</li>
@@ -74,17 +67,21 @@ Key changes:
 <li>Two relays - one for the fan and one for the heater</li>
 <li>Fully enclosed and sealed design with passive air access and drain hole at the bottom</li>
 
-![IMG_0595](https://github.com/user-attachments/assets/c010b5f1-a3dc-4ce9-8e89-2c99297a522f)
+><img src="https://github.com/user-attachments/assets/c010b5f1-a3dc-4ce9-8e89-2c99297a522f" width="300" />
 
-Fig 3: Prototype 2 Testing For Fit of Components in Enclosure
+Fig 2: Prototype 2 Testing For Fit of Components in Enclosure
 
-![IMG_1ACED76C-B3CF-402B-A785-0908097FE2AA](https://github.com/user-attachments/assets/e8aa3f8f-5f34-4bb3-8bb0-af1a2303a12f)
+>![IMG_1ACED76C-B3CF-402B-A785-0908097FE2AA](https://github.com/user-attachments/assets/e8aa3f8f-5f34-4bb3-8bb0-af1a2303a12f)
 
-Fig 4: Finished Prototype 2
+Fig 3: Finished Prototype 2
 
-![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_2/Prototype_2_Circuit_Diagram.png)
+>![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_2/Prototype_2_Circuit_Diagram.png)
 
-Diagram 2: Prototype 2 Circuit Diagram
+Diagram 1: Prototype 2 Circuit Diagram
+
+![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_2/PCB.PNG)
+
+Fig. 4: Prototype 2 PCB
 
 
 ### Web App Development
