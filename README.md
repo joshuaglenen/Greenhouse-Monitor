@@ -82,27 +82,3 @@ Diagram 1: Prototype 2 Circuit Diagram
 ![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_2/PCB.PNG)
 
 Fig. 4: Prototype 2 PCB
-
-
-### Web App Development
-
-I migrated from a SPIFFS-hosted local dashboard to a Flask-based web app. 
-
-This new app:
-<li>Allows users to register a device</li>
-<li>Displays live sensor data and historical logs</li>
-<li>Fetches weather forecasts via OpenWeatherMap API</li>
-<li>Sends the user alerts for frost and heatwave warnings</li>
-<li>Offers manual relay control via the internet</li>
-The app connects via the ESP32's HTTP server and to an SQL cloud database. Data can be retrieved from the HTTP server directly over a 24-hour period or taken from the SQL or ThingSpeak databases.
-
-
-## Results
-
-### Testing 
-
-TODO Describe testing protocol and validation steps.
-  
-### Conclusion 
-
-TODO Summarize performance, limitations, and future directions.
