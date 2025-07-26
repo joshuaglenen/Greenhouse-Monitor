@@ -4,7 +4,6 @@
 #include <WebServer.h>
 #include <WiFiManager.h>
 #include <FS.h>
-#include <SPIFFS.h>
 #include <HTTPClient.h>
 #include <ArduinoOTA.h>
 
@@ -13,8 +12,9 @@
 #define DHTTYPE DHT22
 #define FAN_PIN 21
 #define HEATER_PIN 19
-#define WATER_PIN 39 //
+#define WATER_PIN 39
 #define SOIL_PIN 36  
+const String webappURL = "http://192.168.2.224:5000";
 
 // === Constraints ===
 int tempMin = 10;
@@ -29,28 +29,16 @@ WiFiManager wifiManager;
 unsigned long lastUpdate;
 bool heaterOverride = false;
 bool soilSensors = false;
-#define LOG_FILE "/log.csv"
-#define MAX_ENTRIES 8640
-int logIndex = 0;
-bool fanOverride = true;
+bool fanOverride = false;
 DHT dht(DHTPIN, DHTTYPE);
 
 // Example sensor readings
-float temp = 24.5;
-float hum = 55.2;
-int water = 20;
-int soil = 75;
+float temp = 20;
+float hum = 50;
+int water = 50;
+int soil = 50;
 
 // === Request Handlers ===
-void handleRoot() {
-  File file = SPIFFS.open("/dashboard.html", "r");
-  if (!file) {
-    server.send(500, "text/plain", "File not found");
-    return;
-  }
-  server.streamFile(file, "text/html");
-  file.close();
-}
 
 void handleSetConstraints() {
   if (server.hasArg("min")) {
@@ -92,17 +80,12 @@ void handleToggleSoil() {
   server.send(200, "text/plain", soilSensors ? "ON" : "OFF");
 }
 
-void handleDownloadLog() {
-  File file = SPIFFS.open(LOG_FILE, "r");
-  if (!file || file.isDirectory()) {
-    Serial.println("Failed to open log file in /log route");
-    server.send(500, "text/plain", "Failed to open log file");
-    return;
-  }
 
-  server.streamFile(file, "text/plain");
-  file.close();
+void handlemacAddr() {
+  String mac = WiFi.macAddress();
+  server.send(200, "text/plain", mac);
 }
+
 
 void handleData() {
   //read data
@@ -118,38 +101,6 @@ void handleData() {
 
   server.send(200, "application/json", json);
   Serial.println(json);
-}
-
-void logData() {
-  File file = SPIFFS.open(LOG_FILE, "a");
-  if (!file) {
-    Serial.println("Failed to open log file for appending.");
-    return;
-  }
-  
-  size_t offset = logIndex * 60;
-  if (!file.seek(offset, SeekSet)) {
-    Serial.println("Seek failed.");
-    file.close();
-    return;
-  }
-  String line =  String(temp, 1) + "," +
-              String(hum, 1) + "," +
-              String(water) + "," +
-              String(soil);
-  if (line.length() > 59) {
-    line = line.substring(0, 59);
-  }   
-  while (line.length() < 59) line += " ";  // Pad with spaces
-  line += "\n";  // Now exactly 60 characters
-  file.print(line);
-  file.close();
-
-  // Track the number of entries
-  logIndex = (logIndex + 1) % MAX_ENTRIES;
-  preferences.begin("log", false);
-  preferences.putInt("index", logIndex);
-  preferences.end();
 }
 
 // === Climate Control (Auto Mode Only) ===
@@ -177,12 +128,22 @@ void checkMoisture() {
 // == uses analog read to redefine global variables
 void updateSensorReadings()
 {
-  temp = dht.readTemperature();
-  hum = dht.readHumidity();
-  if(isnan(temp)||isnan(hum))
-  {
-    Serial.println("DHT22 Failure");
+  static int dhtFailures = 0;
+  float t = dht.readTemperature();
+  float h = dht.readHumidity();
+  //dht22 has instability over many cycles so it needs to reboot ocasionally
+  if (isnan(t) || isnan(h)) {
+    dhtFailures++;
+    if (dhtFailures > 10) {
+      Serial.println("Too many DHT22 failures, rebooting...");
+      ESP.restart();  // Safe reboot
+    }
+    return;
   }
+  dhtFailures = 0;
+  temp = t;
+  hum = h;
+  
   if(soilSensors)
   {
   water = analogRead(WATER_PIN);
@@ -193,20 +154,34 @@ void updateSensorReadings()
 
 }
 
-void initLogFile() {
-  if (!SPIFFS.exists(LOG_FILE)) {
-    File file = SPIFFS.open(LOG_FILE, "w");
-    if (file) {
-      String placeholder = "0.0,0.0,0,0\n";
-      for (int i = 0; i < MAX_ENTRIES; i++) {
-        file.print(placeholder);
-      }
-      file.close();
-      Serial.println("Log file initialized.");
-    } else {
-      Serial.println("Failed to create log file.");
-    }
-  }
+void sendData() {
+  updateSensorReadings();
+
+  if (!fanOverride && !heaterOverride)
+    controlClimateAuto();
+  if (soilSensors)
+    checkMoisture();
+
+  //todo: sql database
+  HTTPClient http;
+  //String payload = "{\"temp\":" + String(temp, 1) + ",\"hum\":" + String(hum, 1) +
+  //                 ",\"water\":" + String(water) + ",\"soil\":" + String(soil) + "}";
+  String url = webappURL + "/submit-log";
+  //http.begin(url);
+  //http.addHeader("Content-Type", "application/json");
+  //http.POST(payload);
+  //http.end();
+
+  url = "http://api.thingspeak.com/update?api_key=key";
+  url += "&field1=" + String(temp, 1);
+  url += "&field2=" + String(hum, 1);
+  url += "&field4=" + String(water);
+  url += "&field5=" + String(soil);
+
+  http.begin(url);
+  int httpCode = http.GET();
+  Serial.printf("ThingSpeak response: %d\n", httpCode);
+  http.end();
 }
 
 void setup() {
@@ -217,22 +192,25 @@ void setup() {
   preferences.begin("settings", true); // read-only
   tempMin = preferences.getInt("tempMin", 10); // 10 is the default
   tempMax = preferences.getInt("tempMax", 40);
-  logIndex = preferences.getInt("index", 0); // default to 0 if unset
   preferences.end();
-
- 
-  if (!SPIFFS.begin(true)) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return;
-  }
 
   //connect to wifi
   wifiManager.autoConnect("Greenhouse-Monitor");
   Serial.print("Connected to Wi-Fi IP: ");
   Serial.println(WiFi.localIP());
-  initLogFile();
   ArduinoOTA.setHostname("Greenhouse-Monitor");
   ArduinoOTA.begin();
+
+  //ping the webapp
+  HTTPClient http;
+  String mac = WiFi.macAddress();
+  String localIP = WiFi.localIP().toString();
+  String url = webappURL + "/register-device";
+  String payload = "{\"mac\": \"" + mac + "\", \"ip\": \"" + localIP + "\"}";
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  int status = http.POST(payload);
+  http.end();
 
   //set GPIO
   dht.begin();
@@ -240,14 +218,14 @@ void setup() {
   pinMode(HEATER_PIN, OUTPUT);
   
   //define routes
-  server.on("/", handleRoot);
   server.on("/toggleFan", handleToggleFan);
   server.on("/toggleHeater", handleToggleHeater);
   server.on("/toggleSoil", handleToggleSoil);
   server.on("/data", handleData);
+  server.on("/mac-addr", handlemacAddr);
   server.on("/set-constraints", handleSetConstraints);
-  server.on("/log", handleDownloadLog);
   server.begin();
+  delay(3000);
   Serial.println("Web server started.");
 }
 
@@ -255,31 +233,9 @@ void loop() {
   server.handleClient();
   ArduinoOTA.handle();
 
-  //update data every 15 seconds
-  if (millis() - lastUpdate > 15000) {
-    lastUpdate = millis();
-  
-    updateSensorReadings();
-    logData();
-    if(!fanOverride && !heaterOverride) controlClimateAuto();
-    if(soilSensors) checkMoisture();
-  
-    //send data to thingspeak
-    String url = "http://api.thingspeak.com/update?api_key=api_key";
-    url += "&field1=" + String(temp, 1);
-    url += "&field2=" + String(hum, 1);
-    url += "&field4=" + String(water);
-    url += "&field5=" + String(soil);
-    HTTPClient http;
-    http.begin(url);
-    int httpCode = http.GET();
-    if (httpCode > 0) {
-      Serial.printf("ThingSpeak response: %d\n", httpCode);
-    } else {
-      Serial.printf("Failed to connect to ThingSpeak: %s\n", http.errorToString(httpCode).c_str());
-    }
-    http.end();
-
-    
-}
+  static unsigned long lastSend = 0;
+  if (millis() - lastSend > 15000) {
+    lastSend = millis();
+    sendData();
+  }
 }
