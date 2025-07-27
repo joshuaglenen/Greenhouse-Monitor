@@ -14,7 +14,7 @@
 #define HEATER_PIN 19
 #define WATER_PIN 39
 #define SOIL_PIN 36  
-const String webappURL = "http://192.168.2.224:5000";
+const String webappURL = "https://greenhouse-monitor.onrender.com/";
 
 // === Constraints ===
 int tempMin = 10;
@@ -154,25 +154,10 @@ void updateSensorReadings()
 
 }
 
-void sendData() {
-  updateSensorReadings();
-
-  if (!fanOverride && !heaterOverride)
-    controlClimateAuto();
-  if (soilSensors)
-    checkMoisture();
-
-  //todo: sql database
+void sendServerData() {
+  //ping ThingSpeak
   HTTPClient http;
-  //String payload = "{\"temp\":" + String(temp, 1) + ",\"hum\":" + String(hum, 1) +
-  //                 ",\"water\":" + String(water) + ",\"soil\":" + String(soil) + "}";
-  String url = webappURL + "/submit-log";
-  //http.begin(url);
-  //http.addHeader("Content-Type", "application/json");
-  //http.POST(payload);
-  //http.end();
-
-  url = "http://api.thingspeak.com/update?api_key=key";
+  String url = "http://api.thingspeak.com/update?api_key=TK9X4Z5W6RQHZ70P";
   url += "&field1=" + String(temp, 1);
   url += "&field2=" + String(hum, 1);
   url += "&field4=" + String(water);
@@ -181,6 +166,33 @@ void sendData() {
   http.begin(url);
   int httpCode = http.GET();
   Serial.printf("ThingSpeak response: %d\n", httpCode);
+  http.end();
+}
+
+void sendSensorData() {
+  
+  updateSensorReadings();
+
+  if (!fanOverride && !heaterOverride)
+    controlClimateAuto();
+  if (soilSensors)
+    checkMoisture();
+
+  HTTPClient http;
+
+  http.begin("https://your-render-url.onrender.com/submit-data");
+  http.addHeader("Content-Type", "application/json");
+
+  String json = "{\"mac\":\"" + WiFi.macAddress() + 
+                "\",\"temp\":24.5,\"hum\":60,\"water\":45,\"soil\":50}";
+
+  int httpResponseCode = http.POST(json);
+
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.println(response);
+  }
+
   http.end();
 }
 
@@ -201,16 +213,6 @@ void setup() {
   ArduinoOTA.setHostname("Greenhouse-Monitor");
   ArduinoOTA.begin();
 
-  //ping the webapp
-  HTTPClient http;
-  String mac = WiFi.macAddress();
-  String localIP = WiFi.localIP().toString();
-  String url = webappURL + "/register-device";
-  String payload = "{\"mac\": \"" + mac + "\", \"ip\": \"" + localIP + "\"}";
-  http.begin(url);
-  http.addHeader("Content-Type", "application/json");
-  int status = http.POST(payload);
-  http.end();
 
   //set GPIO
   dht.begin();
@@ -233,9 +235,14 @@ void loop() {
   server.handleClient();
   ArduinoOTA.handle();
 
-  static unsigned long lastSend = 0;
-  if (millis() - lastSend > 15000) {
-    lastSend = millis();
-    sendData();
+  static unsigned long lastServerSend = 0;
+  static unsigned long lastSensorSend = 0;
+  if (millis() - lastServerSend > 15000) {
+    lastServerSend = millis();
+    sendServerData();
+  }
+  if (millis() - lastSensorSend > 5000) {
+    lastSensorSend = millis();
+    sendSensorData();
   }
 }
