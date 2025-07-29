@@ -72,6 +72,7 @@ For the final design:
 <li>Added external connectors to relays, sensors, and power supply for customizability</li>
 <li>Added uart connector to flash the chip</li>
 <li>Can handle up to 250V 20A Power supply to heating and cooling system with HF1115F</li>
+<li>Inculdes connector for external antenna for a better long range connection</li></li>
 
 ><img src="https://github.com/user-attachments/assets/c010b5f1-a3dc-4ce9-8e89-2c99297a522f" width="300" />
 
