@@ -64,8 +64,14 @@ Key changes:
 <li>RTC, light sensor, RGB LED, and buzzer removed</li>
 <li>Smaller perfboard cut to fit enclosure</li>
 <li>Replaced PSU with HLK-PM01 module</li>
-<li>Two relays - one for the fan and one for the heater</li>
+<li>Two relays - one for the fan and one for the heater can handle up to 250V 3A with fuse</li>
 <li>Fully enclosed and sealed design with passive air access and drain hole at the bottom</li>
+
+For the final design:
+<li>Updated psu with HLK-20M12 and AP3211K provide a stable 12vdc to drive relays and 3.3vdc for logic</li>
+<li>Added external connectors to relays, sensors, and power supply for customizability</li>
+<li>Added uart connector to flash the chip</li>
+<li>Can handle up to 250V 20A Power supply to heating and cooling system with HF1115F</li>
 
 ><img src="https://github.com/user-attachments/assets/c010b5f1-a3dc-4ce9-8e89-2c99297a522f" width="300" />
 
@@ -75,10 +81,10 @@ Fig 2: Prototype 2 Testing For Fit of Components in Enclosure
 
 Fig 3: Finished Prototype 2
 
->![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_2/Prototype_2_Circuit_Diagram.png)
+<img width="3507" height="2480" alt="Untitled" src="https://github.com/user-attachments/assets/3510b296-ce54-4abf-acad-fb6952a6d993" />
 
-Diagram 1: Prototype 2 Circuit Diagram
+Diagram 1: Final Circuit Diagram
 
-![IMG](https://github.com/joshuaglenen/Greenhouse-Monitor/blob/main/prototype_2/PCB.PNG)
+<img width="721" height="558" alt="Capture" src="https://github.com/user-attachments/assets/1c7fe986-12d2-417f-81de-bb7f24051f76" />
 
-Fig. 4: Prototype 2 PCB
+Fig. 4: Final PCB
