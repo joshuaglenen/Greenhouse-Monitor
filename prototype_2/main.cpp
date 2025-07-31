@@ -135,9 +135,9 @@ void updateSensorReadings()
   //dht22 has instability over many cycles so it needs to reboot ocasionally
   if (isnan(t) || isnan(h)) {
     dhtFailures++;
-    if (dhtFailures > 20) {
+    if (dhtFailures > 30) {
       Serial.println("Too many DHT22 failures, rebooting...");
-      ESP.restart();  // Safe reboot
+      ESP.restart();  // Software reboot
     }
     return;
   }
@@ -149,7 +149,7 @@ void updateSensorReadings()
   {
   water = analogRead(WATER_PIN);
   soil = analogRead(SOIL_PIN);
-  water = map(water, 0, 805, 0, 42.31); //0 to 4cm
+  //water = map(water, 0, 805, 0, 42.31); //0 to 4cm
   //soilPercent = map(soil, 4095, 530, 0, 100); // up to 100%
   }
 
@@ -297,7 +297,7 @@ void loop() {
 
   static unsigned long lastServerSend = 0;
   static unsigned long lastSensorSend = 0;
-  if (millis() - lastServerSend > 15000) {
+  if (millis() - lastServerSend > 30000) {
     lastServerSend = millis();
     sendServerData();
   }
