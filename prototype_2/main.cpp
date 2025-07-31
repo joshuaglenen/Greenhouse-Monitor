@@ -6,6 +6,7 @@
 #include <FS.h>
 #include <HTTPClient.h>
 #include <ArduinoOTA.h>
+#include <ArduinoJson.h>
 
 // === Pin Assignments ===
 #define DHTPIN 17
@@ -14,7 +15,7 @@
 #define HEATER_PIN 19
 #define WATER_PIN 39
 #define SOIL_PIN 36  
-const String webappURL = "https://greenhouse-monitor.onrender.com/";
+const String webappURL = "https://greenhouse-monitor.onrender.com/"; //"http://192.168.2.224:5000"; //
 
 // === Constraints ===
 int tempMin = 10;
@@ -180,7 +181,7 @@ void sendSensorData() {
 
   HTTPClient http;
 
-  http.begin("https://your-render-url.onrender.com/submit-data");
+  http.begin(webappURL + "/submit-data");
   http.addHeader("Content-Type", "application/json");
 
   String json = "{\"mac\":\"" + WiFi.macAddress() + 
@@ -188,13 +189,51 @@ void sendSensorData() {
 
   int httpResponseCode = http.POST(json);
 
-  if (httpResponseCode > 0) {
-    String response = http.getString();
-    Serial.println(response);
+  if (httpResponseCode == 200) {
+  String response = http.getString();
+  Serial.println("Command response:");
+  Serial.println(response);
+
+    DynamicJsonDocument doc(256);
+    DeserializationError error = deserializeJson(doc, response);
+    if (!error) {
+      if (doc["toggle_fan"]) {
+        handleToggleFan();
+      }
+      if (doc["toggle_heater"]) {
+        handleToggleHeater();
+      }
+      if (doc["toggle_soil"]) {
+        handleToggleSoil();
+      }
+
+      if (doc["update_constraints"]) {
+        int minT = doc["update_constraints"]["min_temp"];
+        int maxT = doc["update_constraints"]["max_temp"];
+        if (minT > 0 && maxT > 0) {
+          
+          // dont let the user submit unrealistic values
+          if(minT!=tempMin && maxT!=tempMax)
+          {
+            if(minT<0) minT = 0; 
+            if(maxT>50) maxT = 50; 
+            if(minT>maxT) minT = maxT -1; 
+            tempMin = minT;
+            tempMax = maxT;
+            preferences.begin("settings", false); // read+write
+            preferences.putInt("tempMin", tempMin);
+            preferences.putInt("tempMax", tempMax);
+            preferences.end();
+          }
+        }
+      }
+    }
   }
+
 
   http.end();
 }
+
 
 void setup() {
   //debugging
