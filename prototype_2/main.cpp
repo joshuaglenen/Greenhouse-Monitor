@@ -135,7 +135,7 @@ void updateSensorReadings()
   //dht22 has instability over many cycles so it needs to reboot ocasionally
   if (isnan(t) || isnan(h)) {
     dhtFailures++;
-    if (dhtFailures > 10) {
+    if (dhtFailures > 20) {
       Serial.println("Too many DHT22 failures, rebooting...");
       ESP.restart();  // Safe reboot
     }
@@ -156,6 +156,8 @@ void updateSensorReadings()
 }
 
 void sendServerData() {
+  updateSensorReadings();
+
   //ping ThingSpeak
   HTTPClient http;
   String url = "http://api.thingspeak.com/update?api_key=TK9X4Z5W6RQHZ70P";
@@ -171,7 +173,6 @@ void sendServerData() {
 }
 
 void sendSensorData() {
-  
   updateSensorReadings();
 
   if (!fanOverride && !heaterOverride)
@@ -185,7 +186,10 @@ void sendSensorData() {
   http.addHeader("Content-Type", "application/json");
 
   String json = "{\"mac\":\"" + WiFi.macAddress() + 
-                "\",\"temp\":24.5,\"hum\":60,\"water\":45,\"soil\":50}";
+              "\",\"temp\":" + String(temp, 1) +
+              ",\"hum\":" + String(hum, 1) +
+              ",\"water\":" + String(water) +
+              ",\"soil\":" + String(soil) + "}";
 
   int httpResponseCode = http.POST(json);
 
@@ -234,6 +238,21 @@ void sendSensorData() {
   http.end();
 }
 
+void waitForValidSensorReadings() {
+  Serial.println("Waiting for valid DHT22 data...");
+  for (int i = 0; i < 10; i++) {
+    float t = dht.readTemperature();
+    float h = dht.readHumidity();
+    if (!isnan(t) && !isnan(h)) {
+      Serial.println("Sensor online.");
+      return;
+    }
+    delay(2000);
+  }
+  Serial.println("DHT22 failed to respond after 10 attempts. Rebooting...");
+  ESP.restart();
+}
+
 
 void setup() {
   //debugging
@@ -257,6 +276,8 @@ void setup() {
   dht.begin();
   pinMode(FAN_PIN, OUTPUT);
   pinMode(HEATER_PIN, OUTPUT);
+  delay(2000);
+  waitForValidSensorReadings();
   
   //define routes
   server.on("/toggleFan", handleToggleFan);
