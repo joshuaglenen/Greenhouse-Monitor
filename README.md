@@ -71,6 +71,7 @@ For the final design:
 <li>Can handle up to 250V 20A Power supply to heating and cooling system with HF1115F</li>
 <li>Inculdes connector for external antenna for a better long range connection</li></li>
 <li>Uses an external and waterproof SHT20/30/40 temperature and humidity sensor </li></li>
+<li>Connects to enclosure mounted high current rated relays with heatsinks</li></li>
 <li>Uses an optional water level sensor to monitor water level in a tank</li></li>
 <li>Uses an optional soil moisture sensor to control the automated watering system</li></li>
 
@@ -83,10 +84,11 @@ Fig 2: Prototype 2 Testing For Fit of Components in Enclosure
 
 Fig 3: Finished Prototype 2
 
-<img width="3507" height="2480" alt="Untitled" src="https://github.com/user-attachments/assets/3510b296-ce54-4abf-acad-fb6952a6d993" />
+<img width="3507" height="2480" alt="Untitled" src="https://github.com/user-attachments/assets/ba4df52e-f29b-4967-b0c7-a1c2d3db91d1" />
 
 Diagram 1: Final Circuit Diagram
 
-<img width="721" height="558" alt="Capture" src="https://github.com/user-attachments/assets/1c7fe986-12d2-417f-81de-bb7f24051f76" />
+<img width="755" height="512" alt="Capture" src="https://github.com/user-attachments/assets/2cb45744-5f0d-4922-8713-bdc8b902c20e" />
+
 
 Fig. 4: Final PCB
