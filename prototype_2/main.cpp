@@ -129,21 +129,20 @@ void checkMoisture() {
 // == uses analog read to redefine global variables
 void updateSensorReadings()
 {
-  static int dhtFailures = 0;
   float t = dht.readTemperature();
   float h = dht.readHumidity();
+
   //dht22 has instability over many cycles so it needs to reboot ocasionally
   if (isnan(t) || isnan(h)) {
-    dhtFailures++;
-    if (dhtFailures > 30) {
-      Serial.println("Too many DHT22 failures, rebooting...");
-      ESP.restart();  // Software reboot
-    }
-    return;
+    waitForValidSensorReadings();
+    t = dht.readTemperature();
+    h = dht.readHumidity();
   }
-  dhtFailures = 0;
-  temp = t;
-  hum = h;
+
+  else {
+    temp = t;
+    hum = h;
+  }
   
   if(soilSensors)
   {
@@ -152,7 +151,6 @@ void updateSensorReadings()
   //water = map(water, 0, 805, 0, 42.31); //0 to 4cm
   //soilPercent = map(soil, 4095, 530, 0, 100); // up to 100%
   }
-
 }
 
 void sendServerData() {
@@ -238,20 +236,52 @@ void sendSensorData() {
   http.end();
 }
 
+//case when t&h are NaN, wait until !NaN then set t&h, otherwise skip readings
 void waitForValidSensorReadings() {
-  Serial.println("Waiting for valid DHT22 data...");
+  static bool stopReadingSensorData = false;
+  if(stopReadingSensorData) return;
+
+  preferences.begin("settings", false);
+  bool alreadyRebooted = preferences.getBool("alreadyRebooted", false);
+  preferences.end();
+
+
+  //get a valid sensor reading. Note: can take up to 30 seconds
   for (int i = 0; i < 10; i++) {
     float t = dht.readTemperature();
     float h = dht.readHumidity();
     if (!isnan(t) && !isnan(h)) {
-      Serial.println("Sensor online.");
+      temp = t;
+      hum = h;
+
+      //reboot successfully reengaged sensor
+      if(alreadyRebooted)
+      {
+        preferences.begin("settings", false);
+        preferences.putBool("alreadyRebooted", false);
+        preferences.end();
+      }
       return;
     }
     delay(2000);
   }
-  Serial.println("DHT22 failed to respond after 10 attempts. Rebooting...");
+  
+  //DHT22 did not recover on reboot, TODO: toggle the power to the sensor with a 2N7000
+  if(alreadyRebooted)
+  {
+    temp = 22.22;
+    hum = 55.55;
+    stopReadingSensorData = true;
+    return;
+  }
+
+  //attempt a reboot
+  preferences.begin("settings", false);
+  preferences.putBool("alreadyRebooted", true);
+  preferences.end();
   ESP.restart();
 }
+
 
 
 void setup() {
