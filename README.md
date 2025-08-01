@@ -1,5 +1,5 @@
 # Greenhouse-Monitor
-An embedded system for greenhouse climate control, designed to wirelessly monitor temperature and humidity and regulate fan and heater activation based on user-defined thresholds. The device connects to Wi-Fi to display live sensor data, offers manual overrides, and fetches localized weather updates including frost and heatwave alerts.
+An embedded system for greenhouse climate control, designed to wirelessly monitor temperature and humidity and regulate the temperature and an automated watering system using relay controlled switches that can deliver upto 250VAC 20A (Max 3A for the prototype). The device connects to a [Render hosted web app](https://greenhouse-monitor.onrender.com/) over Wi-Fi to display live sensor data, allow manual overrides, and display localized weather updates including frost and heatwave alerts.
 
 ## Background
 
@@ -9,28 +9,13 @@ This project began as a personal challenge to improve my skills in embedded syst
   
 ### Implementation
   
-I chose the ESP32 microcontroller for its built-in Wi-Fi and Bluetooth capabilities. The initial prototype (Fig. 1) included all relevant sensors I had on hand. Over time, I refined the system to a more practical and deployable design, balancing simplicity with essential features. I integrated a local dashboard served via SPIFFS, implemented automated data uploads to ThingSpeak, and developed a lightweight web app backed by an SQL database for persistent logging and remote control.
+I chose the ESP32 microcontroller for its built-in Wi-Fi and Bluetooth capabilities. The initial prototype (Fig. 1) included all relevant sensors I had on hand. Over time, I refined the system to a more practical and deployable design, balancing simplicity with essential features. I integrated a local dashboard served via SPIFFS, implemented automated data uploads to ThingSpeak, and developed a lightweight web app backed by an SQL database for persistent logging and remote control. Over time I evolved the prototype into something depolyable (Fig. 3) and tested it in a real greenhouse environment. I encountered issues with longterm stability using SPIFFS to write and read from flash and found that the DTH22 sensor would fail over time. I implemented a final design (Diagram 2) which uses a PCB (Fig. 4) and includes component upgrades which are more reliable and can deliver power to higher rated loads.
 
-### Parts List 
-
-The following parts for the second prototype not including the optional soil moisture and water level sensors are listed below.
-  <li>HLK_PM01 120VAC 0.2A to 5VDC 0.6A </li>
-  <li>3.5A Slow Blow Fuse</li>
-  <li>10A Slow Blow Fuse</li>
-  <li>1n4148 Diode</li>
-  <li>2 2N7000 NPN Transistors</li>
-  <li>220, 2x10k, 2x1k Ohm 0.25W Resistors</li>
-  <li>0.22uF X2 Capacitor</li>
-  <li>22pF Capacitor</li>
-  <li>100 Ohm 1W Resistor</li>
-  <li>DHT22</li>
-  <li>ESP32 Devkit</li>
-  
 ## Methods
 
 ### Embedded Programming
 
-The MCU code was developed for the ESP32 DevKit. Libraries used included <ArduinoOTA.h> for over-the-air updates, <WiFiManager.h> and <WiFi.h> for network handling, <WebServer.h> for HTTP interface routing, and <HTTPClient.h> for external data uploads.
+The MCU code was developed for the ESP32 DevKit. Libraries used included <ArduinoOTA.h> for over-the-air updates, <WiFiManager.h> and <WiFi.h> for network handling, <WebServer.h> for HTTP interface routing, and <HTTPClient.h> for posting data to the webserver and reading back commands.
 
 ### Core features:
 <li>Periodic logging of temperature and humidity (every 15 seconds)</li>
@@ -67,12 +52,28 @@ Key changes:
 <li>Two relays - one for the fan and one for the heater can handle up to 250V 3A with fuse</li>
 <li>Fully enclosed and sealed design with passive air access and drain hole at the bottom</li>
 
+Parts list for the second prototype:
+<li>HLK_PM01 120VAC 0.2A to 5VDC 0.6A </li>
+<li>2 3.5A Slow Blow Fuse</li>
+<li>1n4148 Diode</li>
+<li>2 2N7000 NPN Transistors</li>
+<li>220, 2x10k, 2x1k Ohm 0.25W Resistors</li>
+<li>0.22uF X2 Capacitor</li>
+<li>22pF Capacitor</li>
+<li>100 Ohm 1W Resistor</li>
+<li>DHT22</li>
+<li>ESP32 Devkit</li>
+
 For the final design:
 <li>Updated psu with HLK-20M12 and AP3211K provide a stable 12vdc to drive relays and 3.3vdc for logic</li>
 <li>Added external connectors to relays, sensors, and power supply for customizability</li>
 <li>Added uart connector to flash the chip</li>
 <li>Can handle up to 250V 20A Power supply to heating and cooling system with HF1115F</li>
 <li>Inculdes connector for external antenna for a better long range connection</li></li>
+<li>Uses an external and waterproof SHT20/30/40 temperature and humidity sensor </li></li>
+<li>Uses an optional water level sensor to monitor water level in a tank</li></li>
+<li>Uses an optional soil moisture sensor to control the automated watering system</li></li>
+
 
 ><img src="https://github.com/user-attachments/assets/c010b5f1-a3dc-4ce9-8e89-2c99297a522f" width="300" />
 
